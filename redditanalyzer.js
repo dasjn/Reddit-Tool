@@ -1,5 +1,5 @@
-// redditAnalyzer.js - Handles analysis, scoring, and categorization logic
-import { signalPatterns, exclusionPatterns, subredditTiers } from "./data";
+// redditAnalyzer.js - Handles analysis, scoring, and categorization logic (CLEAN VERSION)
+const { signalPatterns, exclusionPatterns, subredditTiers } = require("./data");
 
 // Check if post should be excluded
 function shouldExcludePost(post) {
@@ -136,46 +136,8 @@ function analyzeContent(text) {
   return { score, matches };
 }
 
-// Analyze both post and top comments
-async function analyzePostAndComments(post) {
-  try {
-    // Get top comments (limit to avoid rate limiting)
-    const comments = await post.comments.slice(0, 10);
-
-    // Add these for debugging
-    let commentCount = comments.length;
-    let sampleComment = comments[0]?.body || "";
-
-    let commentAnalysis = {
-      score: 0,
-      matches: [],
-      insights: [],
-      commentCount,
-      sampleComment,
-    };
-
-    for (const comment of comments) {
-      if (comment.body && comment.body !== "[deleted]" && comment.score > 1) {
-        const analysis = analyzeContent(comment.body);
-        commentAnalysis.score += analysis.score * 0.3; // Comments get 30% weight
-        commentAnalysis.matches.push(...analysis.matches);
-
-        // Check for hiring responses in comments
-        if (analysis.matches.some((m) => m.category === "hire")) {
-          commentAnalysis.insights.push("💬 Hiring discussion in comments");
-        }
-      }
-    }
-
-    return commentAnalysis;
-  } catch (error) {
-    console.log("Error analyzing comments:", error.message);
-    return { score: 0, matches: [], insights: [], commentCount: 0 };
-  }
-}
-
-// Enhanced priority scoring with contextual factors
-function calculatePriorityScore(post, postAnalysis, commentAnalysis = null) {
+// Enhanced priority scoring with contextual factors (SIN análisis de comentarios)
+function calculatePriorityScore(post, postAnalysis) {
   let score = 0;
 
   // Base engagement (reduced weight to focus on content quality)
@@ -184,11 +146,6 @@ function calculatePriorityScore(post, postAnalysis, commentAnalysis = null) {
 
   // Content analysis score (primary factor)
   score += postAnalysis.score;
-
-  // Comment analysis bonus
-  if (commentAnalysis) {
-    score += commentAnalysis.score;
-  }
 
   // Quality multipliers
   const hasDirectHire = postAnalysis.matches.some(
@@ -230,12 +187,9 @@ function calculatePriorityScore(post, postAnalysis, commentAnalysis = null) {
   return Math.min(Math.round(score), 100);
 }
 
-// Enhanced signal detection
-function detectSignals(postAnalysis, commentAnalysis = null) {
+// Enhanced signal detection (SIN análisis de comentarios)
+function detectSignals(postAnalysis) {
   const allMatches = [...postAnalysis.matches];
-  if (commentAnalysis) {
-    allMatches.push(...commentAnalysis.matches);
-  }
 
   return {
     hire: allMatches.some((m) => m.category === "hire"),
@@ -255,11 +209,10 @@ function categorizePost(score) {
   return "cold";
 }
 
-// Advanced insight generation
-function generateInsights(post, signals, postAnalysis, commentAnalysis = null) {
+// Advanced insight generation (SIN análisis de comentarios)
+function generateInsights(post, signals, postAnalysis) {
   const insights = [];
   const allMatches = [...postAnalysis.matches];
-  if (commentAnalysis) allMatches.push(...commentAnalysis.matches);
 
   // Subreddit context insight
   const subredditInfo = getSubredditMultiplier(post.subreddit.display_name);
@@ -327,11 +280,6 @@ function generateInsights(post, signals, postAnalysis, commentAnalysis = null) {
     insights.push("⏰ Time-sensitive opportunity");
   }
 
-  // Comment insights
-  if (commentAnalysis && commentAnalysis.insights.length > 0) {
-    insights.push(...commentAnalysis.insights);
-  }
-
   return insights;
 }
 
@@ -376,7 +324,6 @@ function getTimeAgo(timestamp) {
 
 module.exports = {
   analyzeContent,
-  analyzePostAndComments,
   calculatePriorityScore,
   detectSignals,
   categorizePost,

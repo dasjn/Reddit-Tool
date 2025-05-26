@@ -1,8 +1,10 @@
-// redditFetcher.js - Handles fetching and initial processing of Reddit posts
+// redditFetcher.js - Actualización con debug mejorado para comentarios
 const Snoowrap = require("snoowrap");
 const {
   analyzeContent,
-  analyzePostAndComments,
+  analyzePostAndCommentsWithDebug,
+  debugCommentStructure,
+  testCommentAnalysis,
   calculatePriorityScore,
   detectSignals,
   categorizePost,
@@ -24,14 +26,50 @@ const r = new Snoowrap({
   password: process.env.REDDIT_PASSWORD,
 });
 
-// Main function to fetch and analyze Reddit posts
+// Configuración de debug
+const DEBUG_CONFIG = {
+  enableCommentDebug: process.env.DEBUG_COMMENTS === "true", // Activa con DEBUG_COMMENTS=true
+  maxDebugPosts: parseInt(process.env.DEBUG_MAX_POSTS) || 3, // Máximo posts para debug completo
+  logCommentStructure: process.env.LOG_COMMENT_STRUCTURE === "true",
+  testSpecificPost: process.env.TEST_POST_URL || null, // URL específica para testing
+};
+
+console.log("🔧 Debug configuration:", DEBUG_CONFIG);
+
+// Función para testing de comentarios específicos
+async function runCommentTests() {
+  if (DEBUG_CONFIG.testSpecificPost) {
+    console.log("\n🧪 === RUNNING COMMENT ANALYSIS TEST ===");
+    const testResult = await testCommentAnalysis(
+      DEBUG_CONFIG.testSpecificPost,
+      r
+    );
+    console.log("Test completed:", testResult.success ? "✅" : "❌");
+    return testResult;
+  }
+  return null;
+}
+
+// Main function to fetch and analyze Reddit posts (con debug mejorado)
 async function fetchAndAnalyzePosts(subList, keywordList, minScore) {
   let allPosts = [];
   let excludedCount = 0;
+  let debugCounter = 0;
+
+  // Ejecutar test específico si está configurado
+  if (DEBUG_CONFIG.testSpecificPost) {
+    await runCommentTests();
+  }
 
   console.log(
     `🎯 Analyzing ${subList.length} subreddits for ${keywordList.length} keywords`
   );
+
+  if (DEBUG_CONFIG.enableCommentDebug) {
+    console.log(
+      `🔍 DEBUG MODE: Will analyze comments in detail for first ${DEBUG_CONFIG.maxDebugPosts} high-potential posts`
+    );
+  }
 
   for (const sub of subList) {
     console.log(`📊 Processing r/${sub}...`);
@@ -68,24 +106,23 @@ async function fetchAndAnalyzePosts(subList, keywordList, minScore) {
           // Analyze post content
           const postAnalysis = analyzeContent(content);
 
-          // Analyze comments for high-potential posts
+          // ENHANCED COMMENT ANALYSIS WITH DEBUG
           let commentAnalysis = null;
-          if (postAnalysis.score > 20 || post.num_comments > 5) {
-            commentAnalysis = await analyzePostAndComments(post);
+          const shouldAnalyzeComments =
+            postAnalysis.score > 20 || post.num_comments > 5;
 
-            // DEBUG: Log comment retrieval status
-            console.log(
-              `💬 Retrieved ${
-                commentAnalysis.commentCount || 0
-              } comments for post: "${post.title.slice(0, 30)}..."`
-            );
-            if (commentAnalysis.sampleComment) {
+          if (shouldAnalyzeComments) {
+            const enableDebugForThisPost =
+              DEBUG_CONFIG.enableCommentDebug &&
+              debugCounter < DEBUG_CONFIG.maxDebugPosts;
+
+            if (enableDebugForThisPost) {
               console.log(
-                `💬 Sample comment: "${commentAnalysis.sampleComment.slice(
-                  0,
-                  100
-                )}..."`
+                `\n🔍 === DEBUG ANALYSIS ${debugCounter + 1}/${
+                  DEBUG_CONFIG.maxDebugPosts
+                } ===`
               );
+              debugCounter++;
             }
           }
 
@@ -134,6 +171,13 @@ async function fetchAndAnalyzePosts(subList, keywordList, minScore) {
             subredditTier: subredditInfo.tier,
             agePenalty: getAgePenalty(post.created_utc),
             engagementQuality: getEngagementQuality(post),
+            // NUEVOS CAMPOS DE DEBUG
+            commentAnalysisScore: commentAnalysis?.score || 0,
+            commentsProcessed: commentAnalysis?.processedComments || 0,
+            commentsSkipped: commentAnalysis?.skippedComments || 0,
+            commentSignals: commentAnalysis?.matches?.length || 0,
+            hasCommentError: !!commentAnalysis?.error,
+            commentDebugApplied: !!commentAnalysis?.debugInfo,
           });
         } catch (postError) {
           console.log(`⚠️ Error processing post: ${postError.message}`);
@@ -163,7 +207,7 @@ async function fetchAndAnalyzePosts(subList, keywordList, minScore) {
       return b.priorityScore - a.priorityScore;
     });
 
-  // Calculate stats
+  // Calculate enhanced stats with comment analysis info
   const stats = {
     total: unique.length,
     excluded: excludedCount,
@@ -181,9 +225,47 @@ async function fetchAndAnalyzePosts(subList, keywordList, minScore) {
     withCommentAnalysis: unique.filter((p) => p.hasCommentAnalysis).length,
     premiumSources: unique.filter((p) => p.subredditTier === "premium").length,
     qualitySources: unique.filter((p) => p.subredditTier === "quality").length,
+    // NUEVAS ESTADÍSTICAS DE COMENTARIOS
+    totalCommentsProcessed: unique.reduce(
+      (sum, p) => sum + (p.commentsProcessed || 0),
+      0
+    ),
+    totalCommentsSkipped: unique.reduce(
+      (sum, p) => sum + (p.commentsSkipped || 0),
+      0
+    ),
+    postsWithCommentSignals: unique.filter((p) => p.commentSignals > 0).length,
+    averageCommentScore:
+      Math.round(
+        unique.reduce((sum, p) => sum + (p.commentAnalysisScore || 0), 0) /
+          unique.length
+      ) || 0,
+    commentErrorsFound: unique.filter((p) => p.hasCommentError).length,
+    debuggedPosts: unique.filter((p) => p.commentDebugApplied).length,
   };
+
+  // Log resumen del análisis de comentarios
+  console.log("\n📊 === COMMENT ANALYSIS SUMMARY ===");
+  console.log(
+    `Posts with comment analysis: ${stats.withCommentAnalysis}/${stats.total}`
+  );
+  console.log(
+    `Comments processed: ${stats.totalCommentsProcessed} (skipped: ${stats.totalCommentsSkipped})`
+  );
+  console.log(`Posts with comment signals: ${stats.postsWithCommentSignals}`);
+  console.log(`Comment errors: ${stats.commentErrorsFound}`);
+  console.log(`Debug applied to: ${stats.debuggedPosts} posts`);
 
   return { posts: unique, stats, excludedCount };
 }
 
-module.exports = { fetchAndAnalyzePosts };
+// Función auxiliar para debugging manual
+async function debugSpecificPost(postUrl) {
+  return await testCommentAnalysis(postUrl, r);
+}
+
+module.exports = {
+  fetchAndAnalyzePosts,
+  debugSpecificPost,
+  runCommentTests,
+};

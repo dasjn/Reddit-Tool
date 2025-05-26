@@ -1,5 +1,5 @@
 // SUBREDDIT QUALITY TIERS - Higher tier = better quality leads
-export const subredditTiers = {
+const subredditTiers = {
   premium: {
     multiplier: 1.4,
     subreddits: [
@@ -44,7 +44,7 @@ export const subredditTiers = {
 };
 
 // EXCLUSION PATTERNS - Posts matching these get filtered out
-export const exclusionPatterns = {
+const exclusionPatterns = {
   students: [
     { phrase: "student project", weight: 100 },
     { phrase: "university assignment", weight: 100 },
@@ -117,7 +117,7 @@ export const exclusionPatterns = {
 };
 
 // Signal patterns for analysis
-export const signalPatterns = {
+const signalPatterns = {
   hire: {
     direct: [
       { phrase: "looking to hire", weight: 30 },
@@ -334,4 +334,10 @@ export const signalPatterns = {
       { phrase: "references", weight: 15 },
     ],
   },
+};
+
+module.exports = {
+  subredditTiers,
+  exclusionPatterns,
+  signalPatterns,
 };
