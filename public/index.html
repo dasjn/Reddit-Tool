@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reddit Intelligence Tool</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #f8f9fa;
+    }
+    
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin: 0 0 8px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin: 0;
+    }
+    
+    .form-container {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    input[type="text"], 
+    input[type="number"], 
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 20px 0;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .filters label {
+      display: flex;
+      align-items: center;
+      font-weight: normal;
+      cursor: pointer;
+      margin: 0;
+    }
+    
+    .filters input[type="checkbox"] {
+      margin-right: 8px;
+      width: auto;
+    }
+    
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    select {
+      padding: 10px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
+    .stats {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .post {
+      background: white;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    
+    .post:hover {
+      transform: translateY(-2px);
+    }
+    
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .post-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 8px 0;
+      line-height: 1.4;
+      flex: 1;
+      margin-right: 16px;
+    }
+    
+    .post-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    
+    .priority-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
+    .priority-hot {
+      background: #ff4757;
+      color: white;
+    }
+    
+    .priority-warm {
+      background: #ffa726;
+      color: white;
+    }
+    
+    .priority-cold {
+      background: #78909c;
+      color: white;
+    }
+    
+    .post-excerpt {
+      color: #555;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+    
+    .signals {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    
+    .signal {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    
+    .signal.hire { background: #e8f5e8; color: #2e7d32; }
+    .signal.budget { background: #fff3e0; color: #f57c00; }
+    .signal.urgent { background: #ffebee; color: #d32f2f; }
+    .signal.decision { background: #f3e5f5; color: #7b1fa2; }
+    .signal.strategic { background: #e0f2f1; color: #00796b; }
+    .signal.competitor { background: #fafafa; color: #424242; }
+    .signal.quality { background: #e8eaf6; color: #3f51b5; }
+    
+    .insights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    
+    .insight {
+      background: #f8f9fa;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #555;
+      border: 1px solid #e9ecef;
+    }
+    
+    .post-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .post-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .post-link:hover {
+      color: #764ba2;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border-left: 4px solid #d32f2f;
+    }
+    
+    .no-results {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      background: white;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 Reddit Intelligence Tool byfugu.com</h1>
+    <p class="subtitle">Discover strategic opportunities and qualified leads from startup conversations</p>
+  </div>
+
+  <div class="form-container">
+    <form id="form">
+      <div class="form-grid">
+        <div>
+          <label for="subs">Target Subreddits</label>
+          <textarea id="subs" placeholder="Enter subreddits separated by commas">startups,EntrepreneurRideAlong,Entrepreneur,saas,smallbusiness,UXDesign,web_design,design_critiques,userexperience,freelancedesign,indiehackers,SideProject,cofounder,Marketing,AskMarketing,growmybusiness,startupbiz</textarea>
+        </div>
+        
+        <div>
+          <label for="keys">Keywords (flexible matching)</label>
+          <textarea id="keys" placeholder="Enter keywords or phrases">design,branding,website,web,app,ui,ux,logo,help,need,recommendations,referrals,hire,freelancer,developer,studio,agency,portfolio,pricing,revamp,landing page,cofounder,founder,suggestions,collaboration,partner,consultation
+          </textarea>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label for="score">Minimum Reddit Score</label>
+          <input type="number" id="score" value="1" min="0">
+        </div>
+      </div>
+
+      <div class="filters">
+        <label><input type="checkbox" id="filterHot"> 🔥 Hot Leads (70+ score)</label>
+        <label><input type="checkbox" id="filterWarm"> 🌟 Warm Leads (45+ score)</label>
+        <label><input type="checkbox" id="filterBudget"> 💰 Budget Signals</label>
+        <label><input type="checkbox" id="filterUrgent"> ⚡ Urgent Needs</label>
+        <label><input type="checkbox" id="filterDecisionMaker"> 👑 Decision Makers</label>
+        <label><input type="checkbox" id="filterHire"> 🎯 Intent to Hire</label>
+      </div>
+
+      <div class="controls">
+        <label for="sort">Sort by:</label>
+        <select id="sort">
+          <option value="priorityScore">Priority Score</option>
+          <option value="score">Reddit Score</option>
+          <option value="comments">Comments</option>
+          <option value="date">Date</option>
+        </select>
+        
+        <button type="submit">🔍 Find Opportunities</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="stats" style="display: none;"></div>
+  <div id="results"></div>
+
+  <script>
+    let allPosts = [];
+    let stats = {};
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const resultsDiv = document.getElementById('results');
+      const statsDiv = document.getElementById('stats');
+      
+      resultsDiv.innerHTML = '<div class="loading">🔍 Analyzing Reddit posts...</div>';
+      statsDiv.style.display = 'none';
+
+      const subs = document.getElementById('subs').value;
+      const keys = document.getElementById('keys').value;
+      const score = document.getElementById('score').value;
+
+      try {
+        const response = await fetch(`/api/posts?subreddits=${encodeURIComponent(subs)}&keywords=${encodeURIComponent(keys)}&minScore=${score}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: Failed to fetch data`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        allPosts = data.posts || data; // Handle both response formats
+        stats = data.stats || {};
+        
+        displayStats();
+        applyFilters();
+        
+      } catch (error) {
+        console.error('Error:', error);
+        resultsDiv.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${error.message}<br>
+            <small>Make sure your server is running and try again.</small>
+          </div>
+        `;
+      }
+    });
+
+    // Add event listeners for filters and sorting
+    ['filterHot', 'filterWarm', 'filterBudget', 'filterUrgent', 'filterDecisionMaker', 'filterHire', 'sort'].forEach(id => {
+      document.getElementById(id).addEventListener('change', applyFilters);
+    });
+
+    function displayStats() {
+      const statsDiv = document.getElementById('stats');
+      if (!stats || Object.keys(stats).length === 0) return;
+      
+      statsDiv.innerHTML = `
+        <div class="stats">
+          <h3 style="margin: 0 0 16px 0;">📊 Analysis Results</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number">${stats.total || 0}</div>
+              <div class="stat-label">Total Posts</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${stats.hot || 0}</div>
+              <div class="stat-label">Hot Leads</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${stats.warm || 0}</div>
+              <div class="stat-label">Warm Leads</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${stats.withBudgetSignals || 0}</div>
+              <div class="stat-label">Budget Signals</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${stats.withHireSignals || 0}</div>
+              <div class="stat-label">Hire Intent</div>
+            </div>
+          </div>
+        </div>
+      `;
+      statsDiv.style.display = 'block';
+    }
+
+    function applyFilters() {
+      const hot = document.getElementById('filterHot').checked;
+      const warm = document.getElementById('filterWarm').checked;
+      const budget = document.getElementById('filterBudget').checked;
+      const urgent = document.getElementById('filterUrgent').checked;
+      const decision = document.getElementById('filterDecisionMaker').checked;
+      const hire = document.getElementById('filterHire').checked;
+      const sortBy = document.getElementById('sort').value;
+
+      let filtered = [...allPosts];
+
+      // Apply filters
+      if (hot) filtered = filtered.filter(post => post.category === 'hot');
+      if (warm) filtered = filtered.filter(post => post.category === 'warm');
+      if (budget) filtered = filtered.filter(post => post.signals?.budget);
+      if (urgent) filtered = filtered.filter(post => post.signals?.urgent);
+      if (decision) filtered = filtered.filter(post => post.signals?.decision);
+      if (hire) filtered = filtered.filter(post => post.signals?.hire);
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'priorityScore':
+            return b.priorityScore - a.priorityScore;
+          case 'score':
+            return b.score - a.score;
+          case 'comments':
+            return b.comments - a.comments;
+          case 'date':
+            return new Date(b.date) - new Date(a.date);
+          default:
+            return b.priorityScore - a.priorityScore;
+        }
+      });
+
+      displayPosts(filtered);
+    }
+
+    function displayPosts(posts) {
+      const resultsDiv = document.getElementById('results');
+      
+      if (!posts || posts.length === 0) {
+        resultsDiv.innerHTML = `
+          <div class="no-results">
+            <h3>No posts found</h3>
+            <p>Try adjusting your filters or search criteria</p>
+          </div>
+        `;
+        return;
+      }
+
+      const postsHtml = posts.map(post => {
+        const signalList = Object.entries(post.signals || {})
+          .filter(([_, value]) => value)
+          .map(([key, _]) => `<span class="signal ${key}">${getSignalLabel(key)}</span>`)
+          .join('');
+
+        const insightsList = (post.insights || [])
+          .map(insight => `<span class="insight">${insight}</span>`)
+          .join('');
+
+        return `
+          <div class="post">
+            <div class="post-header">
+              <h3 class="post-title">${escapeHtml(post.title)}</h3>
+              <span class="priority-badge priority-${post.category}">
+                ${post.priorityScore} - ${post.category.toUpperCase()}
+              </span>
+            </div>
+            
+            <div class="post-meta">
+              <span>r/${post.subreddit}</span>
+              <span>•</span>
+              <span>📈 ${post.score} points</span>
+              <span>•</span>
+              <span>💬 ${post.comments} comments</span>
+              <span>•</span>
+              <span>📅 ${post.date}</span>
+              <span>•</span>
+              <span>👤 u/${post.author}</span>
+            </div>
+
+            ${post.excerpt ? `<div class="post-excerpt">${escapeHtml(post.excerpt)}</div>` : ''}
+
+            ${signalList ? `<div class="signals">${signalList}</div>` : ''}
+
+            ${insightsList ? `<div class="insights">${insightsList}</div>` : ''}
+
+            <div class="post-actions">
+              <a href="${post.url}" target="_blank" class="post-link">View on Reddit →</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      resultsDiv.innerHTML = postsHtml;
+    }
+
+    function getSignalLabel(signal) {
+      const labels = {
+        hire: '🎯 Hire Intent',
+        budget: '💰 Budget',
+        urgent: '⚡ Urgent',
+        decision: '👑 Decision Maker',
+        strategic: '🚀 Strategic',
+        competitor: '🔄 Competitor',
+        quality: '💎 Quality'
+      };
+      return labels[signal] || signal;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initial display
+    applyFilters();
+  </script>
+</body>
+</html>
